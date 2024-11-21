@@ -1,0 +1,28 @@
+parameters:
+  - name: branchName
+    type: string
+    default: 'hotfix,release'
+
+stages:
+  - stage: validation
+    jobs:
+      - job: branchValidation
+        steps:
+          - pwsh: |
+              $allowedBranches = "${{ parameters.branchName }}".Split(',')
+              $isValid = $false
+              foreach ($branch in $allowedBranches) {
+                Write-Host "Checking branch: $branch"
+                if ('$(System.PullRequest.SourceBranch)' -like "refs/heads/$branch/*") {
+                  $isValid = $true
+                  break
+                }
+              }
+              if ($isValid) {
+                Write-Host "This Branch '$(System.PullRequest.SourceBranch)' is allowed"
+              }
+              else {
+                Write-Host "'$(System.PullRequest.SourceBranch)' is not allowed to merge, Branch should start with one of the following: $($allowedBranches -join ', ')"
+                exit 1
+              }
+            errorActionPreference: Stop
